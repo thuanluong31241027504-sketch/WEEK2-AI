@@ -1,0 +1,49 @@
+import numpy as np
+import skfuzzy as fuzzy
+from skfuzzy import control as ctrl
+
+density = ctrl.Antecedent(np.arange(0, 101, 1), 'density')
+urgency = ctrl.Antecedent(np.arange(0, 101, 1), 'urgency')
+load = ctrl.Antecedent(np.arange(0, 101, 1), 'load')
+traffic = ctrl.Antecedent(np.arange(0, 101, 1), 'traffic')
+profit = ctrl.Antecedent(np.arange(0, 101, 1), 'profit')
+
+combine = ctrl.Consequent(np.arange(0, 11, 1), 'combine')
+
+for var in [density, urgency, load, traffic, profit]:
+    var['Thấp'] = fuzzy.trimf(var.universe, [0, 0, 50])
+    var['Trung bình'] = fuzzy.trimf(var.universe, [30, 50, 70])
+    var['Cao'] = fuzzy.trimf(var.universe, [50, 100, 100])
+
+combine['Ít'] = fuzzy.trimf(combine.universe, [0, 0, 5])
+combine['Một số'] = fuzzy.trimf(combine.universe, [3, 5, 8])
+combine['Nhiều'] = fuzzy.trimf(combine.universe, [6, 10, 10])
+
+
+rules = [
+
+    ctrl.Rule(density['Cao'] & traffic['Thấp'] & load['Thấp'], combine['Nhiều']),
+    ctrl.Rule(density['Cao'] & profit['Cao'], combine['Nhiều']),
+    
+
+    ctrl.Rule(density['Trung bình'], combine['Một số']),
+    ctrl.Rule(traffic['Trung bình'] & urgency['Trung bình'], combine['Một số']),
+    ctrl.Rule(profit['Trung bình'] & load['Trung bình'], combine['Một số']),
+    
+    ctrl.Rule(urgency['Cao'], combine['Ít']),
+    ctrl.Rule(traffic['Cao'], combine['Ít']),
+    ctrl.Rule(density['Thấp'], combine['Ít']),
+    ctrl.Rule(load['Cao'], combine['Ít'])
+]
+
+delivery_ctrl = ctrl.ControlSystem(rules)
+delivery_sim = ctrl.ControlSystemSimulation(delivery_ctrl)
+
+delivery_sim.input['density'] = 80
+delivery_sim.input['urgency'] = 40
+delivery_sim.input['load'] = 20
+delivery_sim.input['traffic'] = 30
+delivery_sim.input['profit'] = 60
+
+delivery_sim.compute()
+print(delivery_sim.output['combine'])
