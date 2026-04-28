@@ -1,0 +1,70 @@
+import numpy as np
+import skfuzzy as fuzzy
+from skfuzzy import control as ctrl
+
+demand = ctrl.Antecedent(np.arange(0, 101, 1), 'demand')
+pressure = ctrl.Antecedent(np.arange(0, 101, 1), 'pressure')
+reputation = ctrl.Antecedent(np.arange(1, 5.1, 0.1), 'reputation')
+profit = ctrl.Antecedent(np.arange(0, 101, 1), 'profit')
+season = ctrl.Antecedent(np.arange(0, 101, 1), 'season')
+discount = ctrl.Consequent(np.arange(0, 71, 1), 'discount')
+
+demand['Thấp'] = fuzzy.trimf(demand.universe, [0, 0, 45])
+demand['Trung bình'] = fuzzy.trimf(demand.universe, [35, 50, 75])
+demand['Cao'] = fuzzy.trimf(demand.universe, [65, 100, 100])
+
+pressure['Thấp'] = fuzzy.trimf(pressure.universe, [0, 0, 45])
+pressure['Trung bình'] = fuzzy.trimf(pressure.universe, [35, 50, 75])
+pressure['Cao'] = fuzzy.trimf(pressure.universe, [65, 100, 100])
+
+reputation['Thấp'] = fuzzy.trimf(reputation.universe, [1.0, 1.0, 4.0])
+reputation['Trung bình'] = fuzzy.trimf(reputation.universe, [3.8, 4.2, 4.6])
+reputation['Cao'] = fuzzy.trimf(reputation.universe, [4.4, 5.0, 5.0])
+
+profit['Thấp'] = fuzzy.trimf(profit.universe, [0, 0, 35])
+profit['Trung bình'] = fuzzy.trimf(profit.universe, [25, 50, 75])
+profit['Cao'] = fuzzy.trimf(profit.universe, [65, 100, 100])
+
+season['Không có'] = fuzzy.trimf(season.universe, [0, 0, 40])
+season['Trung bình'] = fuzzy.trimf(season.universe, [30, 60, 85])
+season['Cao'] = fuzzy.trimf(season.universe, [75, 100, 100])
+
+discount['Rất thấp'] = fuzzy.trimf(discount.universe, [0, 2.5, 5])
+discount['Thấp'] = fuzzy.trimf(discount.universe, [5, 10, 15])
+discount['Trung bình'] = fuzzy.trimf(discount.universe, [15, 25, 40])
+discount['Cao'] = fuzzy.trimf(discount.universe, [35, 50, 60])
+discount['Rất cao'] = fuzzy.trimf(discount.universe, [55, 65, 70])
+
+rules = [
+  
+    ctrl.Rule(profit['Thấp'], discount['Rất thấp']),
+    
+    ctrl.Rule(season['Không có'] & profit['Cao'], discount['Thấp']),
+    ctrl.Rule(season['Không có'] & profit['Trung bình'], discount['Rất thấp']),
+    
+    ctrl.Rule(pressure['Cao'] & profit['Cao'], discount['Cao']),
+    ctrl.Rule(demand['Thấp'] & profit['Cao'], discount['Trung bình']),
+    
+    ctrl.Rule(season['Cao'] & profit['Cao'] & pressure['Cao'], discount['Rất cao']),
+    ctrl.Rule(season['Cao'] & profit['Cao'] & pressure['Trung bình'], discount['Cao']),
+    ctrl.Rule(season['Cao'] & profit['Trung bình'], discount['Trung bình']),
+    
+    ctrl.Rule(reputation['Thấp'] & profit['Trung bình'], discount['Trung bình']),
+    ctrl.Rule(reputation['Cao'] & demand['Cao'], discount['Thấp']),
+    
+    ctrl.Rule(season['Trung bình'] & profit['Trung bình'], discount['Thấp']),
+    ctrl.Rule(pressure['Trung bình'] & demand['Trung bình'] & profit['Cao'], discount['Trung bình'])
+]
+
+discount_ctrl = ctrl.ControlSystem(rules)
+discount_sim = ctrl.ControlSystemSimulation(discount_ctrl)
+
+discount_sim.input['demand'] = 80
+discount_sim.input['pressure'] = 60
+discount_sim.input['reputation'] = 4.2
+discount_sim.input['profit'] = 80
+discount_sim.input['season'] = 95
+
+discount_sim.compute()
+
+print(discount_sim.output['discount'])
