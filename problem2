@@ -1,0 +1,84 @@
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+
+store_rating = ctrl.Antecedent(np.arange(0, 5.1, 0.1), 'store_rating')
+sales_volume = ctrl.Antecedent(np.arange(0, 10001, 100), 'sales_volume')
+profit_margin = ctrl.Antecedent(np.arange(0, 101, 1), 'profit_margin')
+seasonal_event = ctrl.Antecedent(np.arange(0, 101, 1), 'seasonal_event')
+competitor_discounts = ctrl.Antecedent(np.arange(0, 101, 1), 'competitor_discounts')
+discount = ctrl.Consequent(np.arange(0, 71, 1), 'discount')
+
+store_rating['low'] = fuzz.trimf(store_rating.universe, [0, 0, 4.0])
+store_rating['medium'] = fuzz.trimf(store_rating.universe, [3.9, 4.25, 4.6])
+store_rating['high'] = fuzz.trimf(store_rating.universe, [4.4, 5, 5])
+
+sales_volume['low'] = fuzz.trimf(sales_volume.universe, [0, 0, 3000])
+sales_volume['medium'] = fuzz.trimf(sales_volume.universe, [2000, 5000, 8000])
+sales_volume['high'] = fuzz.trimf(sales_volume.universe, [6000, 10000, 10000])
+
+profit_margin['low'] = fuzz.trimf(profit_margin.universe, [0, 0, 20])
+profit_margin['medium'] = fuzz.trimf(profit_margin.universe, [15, 30, 50])
+profit_margin['high'] = fuzz.trimf(profit_margin.universe, [40, 70, 100])
+
+seasonal_event['low'] = fuzz.trimf(seasonal_event.universe, [0, 0, 20])
+seasonal_event['medium'] = fuzz.trimf(seasonal_event.universe, [10, 30, 50])
+seasonal_event['high'] = fuzz.trimf(seasonal_event.universe, [40, 70, 100])
+
+competitor_discounts['low'] = fuzz.trimf(competitor_discounts.universe, [0, 0, 25])
+competitor_discounts['medium'] = fuzz.trimf(competitor_discounts.universe, [15, 30, 50])
+competitor_discounts['high'] = fuzz.trimf(competitor_discounts.universe, [40, 70, 100])
+
+discount['very_low'] = fuzz.trimf(discount.universe, [0, 0, 5])
+discount['low'] = fuzz.trimf(discount.universe, [3, 7, 12])
+discount['medium'] = fuzz.trimf(discount.universe, [8, 15, 22])
+discount['high'] = fuzz.trimf(discount.universe, [18, 30, 42])
+discount['very_high'] = fuzz.trimf(discount.universe, [35, 55, 70])
+
+rules = []
+
+rules.append(ctrl.Rule(store_rating['low'] & profit_margin['low'], discount['very_low']))
+rules.append(ctrl.Rule(store_rating['low'] & profit_margin['medium'], discount['low']))
+rules.append(ctrl.Rule(store_rating['low'] & profit_margin['high'], discount['medium']))
+
+rules.append(ctrl.Rule(store_rating['medium'] & profit_margin['low'], discount['low']))
+rules.append(ctrl.Rule(store_rating['medium'] & profit_margin['medium'], discount['medium']))
+rules.append(ctrl.Rule(store_rating['medium'] & profit_margin['high'], discount['high']))
+
+rules.append(ctrl.Rule(store_rating['high'] & profit_margin['low'], discount['medium']))
+rules.append(ctrl.Rule(store_rating['high'] & profit_margin['medium'], discount['high']))
+rules.append(ctrl.Rule(store_rating['high'] & profit_margin['high'], discount['very_high']))
+
+rules.append(ctrl.Rule(sales_volume['low'] & competitor_discounts['high'], discount['high']))
+rules.append(ctrl.Rule(sales_volume['medium'] & competitor_discounts['medium'], discount['medium']))
+rules.append(ctrl.Rule(sales_volume['high'] & competitor_discounts['low'], discount['low']))
+
+rules.append(ctrl.Rule(seasonal_event['high'] & store_rating['high'], discount['very_high']))
+rules.append(ctrl.Rule(seasonal_event['high'] & store_rating['low'], discount['medium']))
+rules.append(ctrl.Rule(seasonal_event['low'] & profit_margin['low'], discount['very_low']))
+
+rules.append(ctrl.Rule(competitor_discounts['high'] & profit_margin['high'], discount['very_high']))
+rules.append(ctrl.Rule(competitor_discounts['high'] & profit_margin['low'], discount['low']))
+
+rules.append(ctrl.Rule(seasonal_event['medium'] & competitor_discounts['medium'], discount['high']))
+rules.append(ctrl.Rule(sales_volume['low'] & seasonal_event['low'], discount['very_low']))
+rules.append(ctrl.Rule(sales_volume['high'] & seasonal_event['high'], discount['very_high']))
+
+discount_ctrl = ctrl.ControlSystem(rules)
+discount_sim = ctrl.ControlSystemSimulation(discount_ctrl)
+
+store_rating_input = 5
+sales_volume_input = 7500
+profit_margin_input = 25
+seasonal_event_input = 85
+competitor_discounts_input = 65
+
+discount_sim.input['store_rating'] = store_rating_input
+discount_sim.input['sales_volume'] = sales_volume_input
+discount_sim.input['profit_margin'] = profit_margin_input
+discount_sim.input['seasonal_event'] = seasonal_event_input
+discount_sim.input['competitor_discounts'] = competitor_discounts_input
+
+discount_sim.compute()
+
+print(discount_sim.output['discount'])
